@@ -84,7 +84,7 @@ set_main $DRIVE1
                 truncate -s 16M /mnt/header.img
 
 
-cryptsetup --key-file=/dev/mapper/lukskey --keyfile-offset="$offset" keyfile-size="$size" $1 enc
+                cryptsetup --key-file=/dev/mapper/lukskey --keyfile-offset="$offset" keyfile-size="$size" $1 enc
                 cryptsetup open --header /mnt/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=$offset --keyfile-size=$size $DRIVE enc
                 cryptsetup close lukskey
                 umount /mnt
