@@ -67,7 +67,7 @@ format_usb() {
 }
 cryptsetup_usb() {
         local dev="$1"; shift
-	cryptsetup -v --cipher aes-xts-plain64 --key-size 512 --hash sha512 --iter-time 5000 --use-random --verify-passphrase luksFormat "$dev"
+	cryptsetup -v --cipher aes-xts-plain64 --key-size=512 --hash=sha512 --iter-time=5000 --use-random --verify-passphrase luksFormat "$dev"
 	cryptsetup open "$dev" encboot
 	mkfs.ext4 /dev/mapper/encboot
 }
@@ -75,16 +75,42 @@ cryptsetup_usb() {
 set_usb002() {
 	local dev="$1"; shift
 	mount /dev/mapper/encboot /mnt
-	dd if=/dev/urandom of=/mnt/key.img bs=4M count=1
+	dd if=/dev/urandom of=/mnt/key.img bs=50M count=1
 	cryptsetup --align-payload=1 luksFormat /mnt/key.img
 	cryptsetup open /mnt/key.img lukskey
 }
 
 
+set_main() {
+        local dev="$1"; shift
+        truncate -s 16M /mnt/header.img
+        cryptsetup --key-file=/dev/mapper/lukskey --keyfile-offset=4 --keyfile-size=8192 luksFormat $dev enc --align-payload 4096 --header /mnt/header.img
+        cryptsetup open --header /mnt/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=4 --keyfile-size=8192 $dev enc
+        cryptsetup close lukskey
+	umount /mnt
+        pvcreate /dev/mapper/enc
+        vgcreate MVG /dev/mapper/enc
+	lvcreate -L 8G MVG -n swap
+        lvcreate -L 32G MVG -n root
+        lvcreate -l 100%FREE MVG -n home
+	mkfs.ext4 /dev/MVG/root
+        mkfs.ext4 /dev/MVG/home
+        mkswap /dev/MVG/swap
+        mount /dev/MVG/root /mnt
+        mkdir /mnt/home
+        mount /dev/MVG/home /mnt/home
+        swapon /dev/MVG/swap
+}
+
+
+
+
+
 ls -l /dev/disk/by-id/
-partition_usb /dev/sdg
-format_usb /dev/sdg1
-cryptsetup_usb /dev/sdg2
-set_usb002 /dev/sdg2
+partition_usb /dev/sdc
+format_usb /dev/sdc1
+cryptsetup_usb /dev/sdc2
+set_usb002 /dev/sdc2
+set_main /dev/sda
 
 
