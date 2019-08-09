@@ -63,7 +63,7 @@ partition_usb() {
 
 format_usb() {
 	local dev="$1"; shift
-	mkfs.fat -F32 "$dev"
+	mkfs.vfat -F 32 "$dev"
 }
 cryptsetup_usb() {
         local dev="$1"; shift
@@ -73,13 +73,11 @@ cryptsetup_usb() {
 }
 
 set_usb002() {
-	local dev="$1"; shift
 	mount /dev/mapper/encboot /mnt
-	dd if=/dev/urandom of=/mnt/key.img bs=50M count=1
+	dd if=/dev/urandom of=/mnt/key.img bs=256M count=1
 	cryptsetup --align-payload=1 luksFormat /mnt/key.img
 	cryptsetup open /mnt/key.img lukskey
 }
-
 
 set_main() {
         local dev="$1"; shift
@@ -101,16 +99,67 @@ set_main() {
         mount /dev/MVG/home /mnt/home
         swapon /dev/MVG/swap
 }
-
-
-
-
+set_mount() {
+	mkdir /mnt/boot
+	mkdir /mnt/efi
+	mount /dev/mapper/encboot /mnt/boot
+	mount /dev/sdb1 /mnt/efi
+}
 
 ls -l /dev/disk/by-id/
 partition_usb /dev/sdc
 format_usb /dev/sdc1
 cryptsetup_usb /dev/sdc2
-set_usb002 /dev/sdc2
+set_usb002
 set_main /dev/sda
+set_mount 
+
+pacstrap /mnt base base-devel
+genfstab -U /mnt >> /mnt/etc/fstab
+arch-chroot /mnt
+ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+hwclock --systohc
+locale-gen
+echo LANG=en_UTF-8 >> /etc/locale.conf
+echo anotherlight >> /etc/hostname
+
+
+## for customencrypthook porition
+##+write file customencrypthook to usb 
+##+p file to /etc/initcpio/install/
+##+then cp /usr/lib/initpcio/install/encrypt
+##+edit mkinitcpio.conf file using sed pattern matching
+##+delete pattern 'full string 001' insert pattern 'full string 002'
+## example format below
+## sed -i s'/replace and substitute000/replace and substitute001/' sedexample.txt
+##
+## cp /usr/lib/initpcio/install/encrypt /etc/initcpio/install/customencrypthook
+
+#################################################
+# 8/14/2019
+# pacstrap /mnt base base-devel all other packages
+# configuration script after installation
+# configuration initial firewall
+# configuration home directory 
+# custom archiso image for packages
+# initial iptables / other config firewall rules firewall rules host
+# vpn configuration out of box :: configure vpn alongside firewall out of box
+# configuration fresh install all :: or github donwload
+# learn all bash special characters 
+# impossible to create vagrant archiso image
+# watch firewall windows osx and limit ip addresses as neccesary
+# kernel nftables
+#
+#
+#
+##################################################
+#  Security Section
+#  OSSEC :: OpenVAS :: AFICK :: Lynis :: AIDE :: Logcheck :: Duplicati
+#+ spm :: julia :: python 2 3 :: pandas :: r :: gnuplot :: torch :: tensorflow
+#+ remind :: vuurmuur ::
+#+ 
+#+ 
+
+
 
 
