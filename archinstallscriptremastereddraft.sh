@@ -34,10 +34,10 @@ echo -n "Repeat Password: "
 read -s password001
 echo
 [[ "$password000" == "$password001" ]] || ( echo "Passwords did not match"; exit 1; )
-hostname=$(dialog --stdout --inputbox "Enter hostname" 0 0) || exit 1
-: ${hostname:?"nein"}
-password=$(dialog --stdout --passwordbox "Enter hostname" 0 0) || exit 1
-: ${password:?"nein"}
+hostname=$(dialog --stdout --inputbox "Enter hostname" 0 0 || exit 1
+: ${hostname:?"nein"})
+password=$(dialog --stdout --passwordbox "Enter hostname" 0 0 || exit 1
+: ${password:?"nein"})
 
 
 #################################################################################################
@@ -45,15 +45,15 @@ password=$(dialog --stdout --passwordbox "Enter hostname" 0 0) || exit 1
 # incorporation devicelist into rest tentative #
   echo -n "Select Main"
   device_list=$(lsblk -dplnx size -o name,size | grep -Ev "boot|rpmb|loop" | tac)
-  device=$(dialog --stdout --menu "Select installation disk" 0 0 0 ${devicelist}) || exit 1
+  device=$(dialog --stdout --menu "select installation disk" 0 0 0 ${devicelist}) || exit 1
   echo -n
   echo -n "Select Usb"
   device_list_usb=$(lsblk -dplnx size -o name, size | grep -Ev "boot|rpmb|loop" | tac)
   device_usb=$(dialog --stdout --menu "Select Usb Drive" 0 0 0 ${device_list_usb}) || exit 1
  echo -n
   echo -n "Select Name Logical Volume Boot Partition"
-  logical_boot_name=$(dialog --stdout --inputbox "boot device name" 0 0) || exit 1
-  : ${logical_boot_name:?"boot_device cannot be empty"}
+  logical_boot_name=$(dialog --stdout --inputbox "boot device name" 0 0 || exit 1
+  : ${logical_boot_name:?"boot_device cannot be empty"})
 
 # something akin to ${deviceby-id} = lsblk -o name,model,serial | awk something something
 
@@ -76,23 +76,23 @@ cryptsetup_usb() {
         echo -n "--key-size"
         echo -n
         read key_size
-        key_size=$(dialog --stdout --inputbox "--key-size" 0 0) || exit 1
-        : ${key_size:?"key_size cannot be empty"}
+        key_size=$(dialog --stdout --inputbox "--key-size" 0 0 || exit 1
+        : ${key_size:?"key_size cannot be empty"})
         echo -n
         echo -n "--hash"
         echo -n
-        hash_type=$(dialog --stdout --inputbox "--hash" 0 0) || exit 1
-        : ${hash_type:?"hash_type cannot not be empty"}
+        hash_type=$(dialog --stdout --inputbox "--hash" 0 0 || exit 1
+        : ${hash_type:?"hash_type cannot be empty"})
         echo -n
         echo -n "iter-time"
         echo -n
-        iter_time=$(dialog --stdout --inputbox "--iter_time" 0 0) || exit 1
-        : ${iter_time:?"iter_time cannot be empty"}
+        iter_time=$(dialog --stdout --inputbox "--iter_time" 0 0 || exit 1
+        : ${iter_time:?"iter_time cannot be empty"})
         echo -n
         echo -n "/dev/mapper/<logical_boot_name>"
         echo -n
-        logical_boot_name=$(dialog --stdout --inputbox "boot device name" 0 0) || exit 1
-        : ${logical_boot_name:?"logical volume name cannot be empty"}
+        logical_boot_name=$(dialog --stdout --inputbox "boot device name" 0 0 || exit 1
+        : ${logical_boot_name:?"logical volume name cannot be empty"})
         cryptsetup -v --cipher aes-xts-plain64 --key-size=${key_size} --hash=${hash_type} --iter-time=${iter_time} --use-random --verify-passphrase luksFormat "$dev"
         cryptsetup open "$dev" ${logical_boot_name}
         mkfs.ext4 /dev/mapper/${logical_boot_name}
@@ -103,12 +103,12 @@ set_usb002() {
         mount /dev/mapper/"$dev" /mnt
         echo -n
         echo -n "block-size"
-        bs=$(dialog --stdout --inputbox "boot device name" 0 0) || exit 1
-        : ${bs:?"block size cannot be empty format i.e. 777M"}
+        bs=$(dialog --stdout --inputbox "boot device name" 0 0 || exit 1
+        : ${bs:?"block size cannot be empty format i.e. 777M"})
         count=$(dialog --stdout --inputbox "count name" 0 0) || exit 1
         : ${count:?"count cannot be empty"}
-        payload_align=$(dialog --stdout --inputbox "payload alignment" 0 0) || exit 1
-        : ${payload_align:?"payload alignment cannot be empty"}
+        payload_align=$(dialog --stdout --inputbox "payload alignment" 0 0 || exit 1
+        : ${payload_align:?"payload alignment cannot be empty"})
         dd if=/dev/urandom of=/mnt/key.img bs=${bs} count=${count}
         cryptsetup --align-payload=${payload_align} luksFormat /mnt/key.img
         cryptsetup open /mnt/key.img lukskey
@@ -131,7 +131,7 @@ set_main() {
         echo -n "name /dev/mapper/<device>"
         read device_name
         echo -n
-        echo -n "Align Payload Set to 4096 for lukskey"
+        echo -n "align payload set to 4096 for lukskey"
         echo -n "mono no aware"
         cryptsetup --key-file=/dev/mapper/lukskey --keyfile-offset=${key_file_offset} --keyfile-size=${key_file_size} luksFormat $dev ${device_name} --align-payload 4096 --header /mnt/header.img
         cryptsetup open --header /mnt/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=${key_file_offset} --keyfile-size=${key_file_size} $dev ${device_name}
