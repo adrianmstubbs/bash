@@ -135,30 +135,6 @@ echo anotherlight >> /etc/hostname
 ##
 ## cp /usr/lib/initpcio/install/encrypt /etc/initcpio/install/customencrypthook
 
-#################################################
-# 8/14/2019
-# pacstrap /mnt base base-devel all other packages
-# configuration script after installation
-# configuration initial firewall
-# configuration home directory 
-# custom archiso image for packages
-# initial iptables / other config firewall rules firewall rules host
-# vpn configuration out of box :: configure vpn alongside firewall out of box
-# configuration fresh install all :: or github donwload
-# learn all bash special characters 
-# impossible to create vagrant archiso image
-# watch firewall windows osx and limit ip addresses as neccesary
-# kernel nftables
-#
-#
-#
-##################################################
-#  Security Section
-#  OSSEC :: OpenVAS :: AFICK :: Lynis :: AIDE :: Logcheck :: Duplicati
-#+ spm :: julia :: python 2 3 :: pandas :: r :: gnuplot :: torch :: tensorflow
-#+ remind :: vuurmuur ::
-#+ 
-#+ 
 
 
 
