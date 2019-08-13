@@ -221,6 +221,7 @@ read usb_part_two
 sed 's/usb-part2/${usb_part_two}/g' /mnt/initcpio/hooks/customencrypthook
 echo -n
 echo -n "input main by-id value"
+echo -n "/dev/disk/by-id"
 echo -n "i.e /dev/disk/by-id/main"
 read main
 sed 's/main/${main}/g' /mnt/initcpio/hooks/customencrypthook
@@ -249,12 +250,14 @@ passwd=${password}
 # 
 # my works shall come to nothing 
 # my efforts are in vain 
-# yet i chose to endure 
+# yet i choose to endure 
 # porque 
 # ces't la vie
 # warum
-# ich habe keine idea
+# ich habe keine idee
 # aber die sterne halten nicht
+# mein deutsch ist sehr schwerig
 # i need sleep
-# i can sleep when i'm dead
+# 
+# 
 #################################################
