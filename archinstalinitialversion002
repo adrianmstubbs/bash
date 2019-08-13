@@ -218,12 +218,12 @@ echo -n "/dev/disk/by-id"
 echo -n "i.e /dev/disk/by-id/usb-part2"
 ls -l /dev/disk/by-id
 read usb_part_two
-sed s/'usb-part2'/'${usb_part_two}'/g /mnt/initcpio/hooks/customencrypthook
+sed 's/usb-part2/${usb_part_two}/g' /mnt/initcpio/hooks/customencrypthook
 echo -n
 echo -n "input main by-id value"
 echo -n "i.e /dev/disk/by-id/main"
 read main
-sed s/'main'/'${main}'/g /mnt/initcpio/hooks/customencrypthook
+sed 's/main/${main}/g' /mnt/initcpio/hooks/customencrypthook
 ## copy paste source destination encrypt and customencrypthook
 cp /mnt/usr/lib/initcpio/install/encrypt /mnt/etc/initcpio/install/customencrypthook
 ## edit mkinitcpio.conf with replacement text
@@ -246,7 +246,7 @@ passwd=${password}
 # configuration home directory
 # custom archiso image for packages
 # kernel nftables
-# i'm a hack as a programmer and as a producer
+# 
 # my works shall come to nothing 
 # my efforts are in vain 
 # yet i chose to endure 
