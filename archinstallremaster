@@ -42,7 +42,15 @@ echo -n
 echo -n timedatectl status
 echo -n
 timedatectl status
-echo -password=$(dialog --stdout --passwordbox "type admin password" 0 0) || exit 1
+echo -n
+echo -n "beginning dialog"
+echo -n
+hostname=$(dialog --stdout --inputbox "type admin hostname" 0 0) || exit 1
+: ${hostname:?"nein"}
+echo -n
+echo -n "please enter root password"
+echo -n
+password=$(dialog --stdout --passwordbox "type admin password" 0 0) || exit 1
 : ${password:?"nein"}
 
 
@@ -82,10 +90,10 @@ cryptsetup_usb() {
         # require piped output cryptsetup
         iter_time=$(dialog --stdout --inputbox "type desired iter time" 0 0) || exit 1
         : ${iter_time:?"iter_time cannot be empty"}
-        logical_boot_name=$(dialog --stdout --inputbox "type boot device name" 0 0) || exit 1
+        logical_boot_name=$(dialog --stdout --inputbox "type boot device name :: usually ---boot" 0 0) || exit 1
         : ${logical_boot_name:?"logical volume name cannot be empty"}
         device_list_part=$(lsblk -plnx size -o name,size)
-        device_usb_part_two=$(dialog --stdout --menu "select cryptsetup boot  partition" 0 0 0 ${device_list_part}) || exit 1
+        device_usb_part_two=$(dialog --stdout --menu "select cryptsetup boot  partition :: usually /dev/sdc2" 0 0 0 ${device_list_part}) || exit 1
         cryptsetup -v --cipher aes-xts-plain64 --key-size=${key_size} --hash=${hash_type} --iter-time=${iter_time} --use-random --verify-passphrase luksFormat ${device_usb_part_two}
         cryptsetup open ${device_usb_part_two} ${logical_boot_name}
         mkfs.ext4 /dev/mapper/${logical_boot_name}
@@ -96,64 +104,77 @@ set_usb002() {
         device_list_part=$(lsblk -plnx size -o name,size)
         device_usb_part_two=$(dialog --stdout --menu "select partition to mount /mnt for section key.img" 0 0 0 ${device_list_part}) || exit 1
         mount /dev/mapper/${device_usb_part_two} /mnt
-        bs=$(dialog --stdout --inputbox "type block size" 0 0) || exit 1
+        bs=$(dialog --stdout --inputbox "type block size :: usually 4M" 0 0) || exit 1
         : ${bs:?"block size cannot be empty format i.e. 777M"}
-        count=$(dialog --stdout --inputbox "type count" 0 0 || exit 1
+        count=$(dialog --stdout --inputbox "type count :: usually 1" 0 0 || exit 1
         : ${count:?"count cannot be empty"})
-        payload_align=$(dialog --stdout --inputbox "type payload alignment" 0 0) || exit 1
-        : ${payload_align:?"payload alignment cannot be empty"}
         dd if=/dev/urandom of=/mnt/key.img bs=${bs} count=${count}
-        cryptsetup --align-payload=${payload_align} luksFormat /mnt/key.img
+        cryptsetup --align-payload=1 luksFormat /mnt/key.img
         cryptsetup open /mnt/key.img lukskey
 }
 
 set_main() {
         local dev="$1"; shift
         echo -n "setting main"
-        echo -n "allocate truncate_size /mnt/header.img"
-        read truncate_size
+        echo -n
+        truncate_size=$(dialog --stdout --inputbox "type file truncation size usually 2M" 0 0) || exit 1
         truncate -s ${truncate_size} /mnt/header.img
+        echo -n
         echo -n "setting lukskey"
         echo -n
         echo -n "--keyfile-offset= :"
-        read key_file_offset
         echo -n
-        echo -n "--keyfile-size= :"
-        read key_file_size
+        keyfile_offset=$(dialog --stdout --inputbox "type keyfile-offset" 0 0) || exit 1
         echo -n
-        echo -n "name /dev/mapper/<device>"
-        read device_name
+        echo -n key-file-size
+        echo -n
+        keyfile_size=$(dialog --stdout --inputbox "type keyfile-size" 0 0) || exit 1
+        echo -n
+        main_name=$(dialog --stdout --inputbox "type name of logical volume main :: usually encmain" 0 0) || exit 1
         echo -n
         echo -n "Align Payload Set to 4096 for lukskey"
+        echo -n
         echo -n "mono no aware"
-        cryptsetup --key-file=/dev/mapper/lukskey --keyfile-offset=${key_file_offset} --keyfile-size=${key_file_size} luksFormat $dev ${device_name} --align-payload 4096 --header /mnt/header.img
-        cryptsetup open --header /mnt/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=${key_file_offset} --keyfile-size=${key_file_size} $dev ${device_name}
+        cryptsetup --key-file=/dev/mapper/lukskey --keyfile-offset=${keyfile_offset} --keyfile-size=${keyfile_size} luksFormat $dev ${main_name} --align-payload 4096 --header /mnt/header.img
+        cryptsetup open --header /mnt/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=${keyfile_offset} --keyfile-size=${keyfile_size} $dev ${main_name}
         cryptsetup close lukskey
         umount /mnt
         echo -n
         echo -n "creating logical volumes"
         echo -n
-        pvcreate /dev/mapper/${device_name}
-                vgcreate MVG /dev/mapper/${device_name}
+        pvcreate /dev/mapper/${main_name}
+        vgcreate MVG /dev/mapper/${main_name}
+        echo -n
         echo -n "size_swap: "
+        echo -n
         echo -n "#M or #G or #T"
+        echo -n
         echo -n "i.e. 8M 8G 8T"
-        read size_swap
+        echo -n
+        size_swap=$(dialog --stdout --inputbox "type size swap partition i.e. 8M 8G 8T" 0 0) || exit 1
+        echo -n
         lvcreate -L ${size_swap} MVG -n swap
+        echo -n
         echo -n "enter size root: "
+        echo -n
         echo -n "80M or 80G or 80T"
-        read size_root
+        echo -n
+        size_root=(dialog --stdout --inputbox "type size root partition i.e. 32M 32G 32T" 0 0) || exit 1
         lvcreate -L ${size_root} MVG -n root
+        echo -n
         echo -n "ich liebe dich"
         echo -n
         echo -n "ich liebe dich auch"
+        echo -n
         lvcreate -l 100%FREE MVG -n home
         mkfs.ext4 /dev/MVG/root
         mkfs.ext4 /dev/MVG/home
         mkswap /dev/MVG/swap
+        echo -n
         echo -n "nani mo - nothing"
         echo -n
         echo -n "nani mo mienai - i see whatever"
+        echo -n
         mount /dev/MVG/root /mnt
         mkdir /mnt/home
         mount /dev/MVG/home /mnt/home
@@ -163,10 +184,18 @@ set_mount() {
         mkdir /mnt/boot
         echo -n "god is in his heaven"
         mkdir /mnt/efi
+        echo -n
         echo -n "all is right with the world"
-        mount /dev/mapper/${logical_boot_name} /mnt/boot
+        echo -n
+        device_list=$(lsblk -dplnx size -o name,size)
+        mntboot_name=$(dialog --stdout --menu "select logical mount /mnt/boot :: same as /mnt point for key.img" 0 0 0 ${device_list}) || exit 1
+        mount /dev/mapper/${mntboot_name} /mnt/boot
+        echo -n
         echo -n "wouldnt you agree?"
-        mount /dev/sdb1 /mnt/efi
+        echo -n
+        device_list=$(lsblk -dplnx size -o name, size)
+        efi_name=$(dialog --stdout --menu "select efi mount /mnt/efi" 0 0 0 ${device_list}) || exit 1
+        mount /dev/${efi_name} /mnt/efi
 }
 
 
@@ -176,6 +205,7 @@ cryptsetup_usb ${device_usb_initial}
 set_usb002 ${device_usb_initial}
 set_main ${device}
 set_mount
+
 pacstrap /mnt base base-devel grub
 genfstab -U /mnt >> /mnt/etc/fstab
 arch-chroot /mnt
@@ -220,6 +250,7 @@ sed s/'main'/'${main}'/g /mnt/initcpio/hooks/customencrypthook
 cp /mnt/usr/lib/initcpio/install/encrypt /mnt/etc/initcpio/install/customencrypthook
 ## edit mkinitcpio.conf with replacement text
 sed 's/MODULES=()/MODULES=(loop)/g' /mnt/etc/mkinitcpio.conf
+sed 's/MODULES=()/MODULES=(loop)/g' /mnt/etc/mkinitcpio.conf
 sed 's/HOOKS=(base udev autodetect modconf block filesystems keyboard fsck/HOOKS=(base udev autodetect modconf block customencrypthook lvm2 filesystems keyboard fsck)/g' /mnt/etc/mkinitcpio.conf
 mkinitcpio -p linux
 grub-install --target=x86_64-efi --efi-directory=/efi --bootloader-id=GRUB
@@ -234,8 +265,18 @@ passwd=${password}
 
 #################################################
 # 8/14/2019
-# script section one
-# script section two
+# configuration initial firewall
+# configuration home directory
 # custom archiso image for packages
-# iptables nftables
+# kernel nftables
+#
+#
+#
+#
 ##################################################
+#  Packages Section B draft
+#  OSSEC :: OpenVAS :: AFICK :: Lynis :: AIDE :: Logcheck :: Duplicati
+#+ spm :: julia :: python 2 3 :: pandas :: r :: gnuplot :: torch :: tensorflow
+#+ remind :: vuurmuur ::
+#+
+#+
