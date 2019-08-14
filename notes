@@ -1,0 +1,226 @@
+avoid refreshing package list without upgrading system
+use pacman -Syu package_name rather than pacma Sy package_name for save from dependency issues
+
+install single package or list
+        pacman -S package_name1 package_name2
+
+install a list of packages
+        pacman -S $(pacman -Ssq package_regex)
+
+install from specific repository
+        pacman -S extra/package_name
+
+install packages similar pattern name
+        pacman -S plasma-{desktop,mediacenter,nm}
+
+        expansion however
+        pacman -S plasma-{workspace{,-wallpapers},pa}
+
+installing package groups prompts user for selections via numbers
+already know this
+
+remove packages
+        pacman -R package_name
+
+remove package and its dependencies not require by any other installed package
+pacman -Rs package_name
+
+prevent saving of .pacsave configuration files after deletion
+pacman -Rn package_name
+
+upgrade all packages
+pacman -Syu
+
+pacman -Q --help pacman -S --help pacman -F --help
+
+search for packages in database seraching both in packages' names and descriptions
+        $ pacman -Ss string1 string2
+
+match package name only
+pacman -Ss '^vim-'
+
+search already installed packages
+pacman -Qs string1 string2
+
+search for file name sin remote packages
+pacman -Fs string1 string2
+
+display extensive information about package:
+pacman -Si package_name
+
+for lcally installed packages
+        pacman -Qi package_name
+passing two -i flags will also display the list of backup files and their modifiaction states:
+        pacman -Qii package_name
+
+to retrieve a list of the files installed by a package
+        pacman -Ql package_name
+to retrieve a list of the files installed by a remote package:
+        pacman -Fl package_name
+to verify the presence of the files installed by a package
+        pacman -Qk package_name
+passing the k flag twice will perform a more thorough check
+to query the database to know which remote package a file belongs to
+pacman -Fo /path/to/file_name
+
+to list all packages no longer required as dependencies (orphans)
+pacman -Qdt
+
+Add above command to pacman post-transaction hook to be notified if a transaction ophaned a package
+to avoid failed to execute commands case no orphans use Exec in hook /usr/bin/bash -c
+                                                "/usr/bin/pacman -Qtd || /usr/bin/echo '=> None found. '"
+
+to list all packages explicitly installed not required as dependencies
+pacman -Qet
+
+to view dependency tree of pacman
+        pactree package_name
+
+database structure
+the pacman databases are normaly located at /var/lib/pacman/sync
+for each repository specified in /etc/pacman.conf there will be a
+corresponding database file located there
+database files are tar-gzipped archives containing one directory for each package,
+for example for the which package.
+
+% tree which-2.20-6
+ which-2.20-6
+ |-- depends
+ ' -- desc
+
+the depends file lists the packages this package dpends on, while desc has a description of the package
+such as the file size and the MD5 hash
+
+cleaning package cache
+        uses script provided within the pacman-contrib package, deletes all cached versions of
+                installed packages, except for the most recent 3, by default
+
+paccache -r
+Enable and start paccach.timer
+discards packages every week
+define number recent version you want to keep.
+paccache -rk1 :: retains one version
+
+add the u switch to limit the action of paccache to uninstalled packages
+remove all cached versions ofuninstalled packages use
+paccache -ruk0
+
+see paccache -h
+
+remove all cached packages not currently installed and the unused database
+pacman -Sc
+
+remove all files from cache use clean switch twice :: most aggressive
+pacman -Scc
+
+install packages not from a remote repository or AUR
+pacman -U /path/topackage/package_name-version.pkg.tar.xz
+
+pacman hooks run from  /usr/share/libalpm/hooks/ directory
+more directories can be specified with HookDir option in pacman.conf
+defaults to /etc/pacman.d/hooks
+hook filenames must be suffixed with .hook
+
+pacman-contrib contains pactree and checkupdates
+pacman -Ql pacman pacman-contrib | grep -E 'bin/.+' to see full list
+
+
+PACMAN TIPS AND TRICKS
+
+list all installed packages and individual sizes
+pacman -Qi | awk '/^Name/{name=$3} /^Installed Size/{print $4$5, name}' | sort -h
+
+package sizes and dependencies install expac and run  expac -H M '%m\t%n' | sort -h
+run pacgraph with the -c option
+
+list explicitly installed packages not in base nor base-devel with size description
+expac -H M "%011m\t%-20n\t%10d" $(comm -23 <(pacman -Qqen | sort) <(pacman -Qqg base base-devel | sort)) |
+sort -n
+
+to list packages marked for upgrade by download size
+pacman -Quq|xargs expac -S -H M '%k\t%n' | sort -sh
+by
+by date expac --timefmt='%Y-%m-%d %T' '%l\t%n' | sort | tail -n 20 list 20 installed packages by date
+        expac --timefmt=%s '%l\t%n' | sort -n | tail -n 20 seconds
+
+list all not packages not base base-devel
+comm -23 <(pacman -Qeq | sort) <(pacman -Qgq base base-devel | sort)
+
+list all installed packages unrequired by other packages also not base base-devel
+comm -23 <(pacman -Qqt | sort) <(pacman -Sqg base base-devel | sort)
+list development packages
+pacman -Qq | grep -Ee '-(bzr|cvs|darcs|git|hg|svn)$'
+
+browse all installed packages with instant preview
+pacman -Qq | fzf --preview 'pacman -Qil {}' --layout=reverse --bind 'enter:execute(pacman -Qil {} | less)'
+uses fzf
+
+list files owned by package with size
+pacman -Qlq package | grep -v '/$' | xargs du -h | sort -h
+
+removing unused packages
+pacman -Rns $(pacman -Qtdq)
+
+remove everything but base group
+pacman -R $(comm -23 <(pacman -Qq | sort) <((for i in $(pacman -Qqg base); do pactree -ul "$i"; done) | sor
+t -u))
+
+backup pacman database
+tar -cjf pacman_database.tar.bz2 /var/lib/pacman/local
+restore by moving the pacman_database.tar.bz2 file into the / directory and executing
+# tar -xjvf pacman_database.tar.bz2
+
+to download packages, or groups of packages:
+pacman -Syw base base-devel grub-bios xorg gimp --cachedir .
+# repo-add ./custom.db.tar.gz ./*
+Then you can burn the "Packages" folder to a CD/DVD or transfer it to a USB stick, external HDD, etc.
+
+To install:
+Mount the media:
+mkfit /mnt/repo
+mount /dev/sr0 /mnt/repo   #For a CD/DVD
+mount /dev/sdxY /mnt/repo  #For a USB stick
+
+Edit pacman.conf and add this repository before the other ones (e.g. extra, core, etc.). This is important.
+ Do not just uncomment the one on the bottom. This way it ensures that the files from the CD/DVD/USB take p
+recedence over those in the standard repositories:
+
+/etc/pacman.conf
+[custom]
+SigLevel = PackageRequired
+Server = file:///mnt/repo/Packages
+to be able to use new repository sync
+to be able to use new repository sync
+pacman -Syu
+
+custom local repository
+
+Use the repo-add script included with pacman to generate a database for a personal repository. Use repo-add
+ --help for more details on its usage. A package database is a tar file, optionally compressed. Valid exten
+sions are .db or .files followed by an archive extension of .tar, .tar.gz, .tar.bz2, .tar.xz, or .tar.Z. Th
+e file does not need to exist, but all parent directories must exist.
+
+To add a new package to the database, or to replace the old version of an existing package in the database,
+ run:
+repo-add /path/to/repo.db.tar.gz /path/to/package-1.0-1-x86_64.pkg.tar.xz
+The database and the packages do not need to be in the same directory when using repo-add, but keep in mind
+ that when using pacman with that database, they should be together. Storing all the built packages to be i
+ncluded in the repository in one directory also allows to use shell glob expansion to add or update multipl
+e packages at once:
+repo-add /path/to/repo.db.tar.gz /path/to/*.pkg.tar.xz
+
+repo-remove /path/to/repo.db.tar.gz pkgname
+
+list installed packages
+pacman -Qqe > pkglist.txt
+
+keep update list explicitly installed packages in combination with /etc/ set up a hook
+[Trigger]
+Operation = Install
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+When = PostTransaction
+Exec = /bin/sh -c '/usr/bin/pacman -Qqe > /etc/pkglist.txt'
